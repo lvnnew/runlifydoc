@@ -8,8 +8,19 @@
 backend/
 ├── src/                    # Исходный код
 │   ├── meta/              # Метаданные и описания сущностей
+│   │   ├── addCatalogs.ts # Описания сущностей
+│   │   ├── addMenu.ts     # Конфигурация меню
+│   │   ├── addWscEntities.ts # Дополнительные сущности
+│   │   ├── regenBasedOnMeta.ts # Регенерация кода
+│   │   ├── metadata.json  # Сгенерированные метаданные
+│   │   └── options.json   # Настройки генерации
+│   │
 │   ├── generated/         # Сгенерированный код
 │   ├── rest/              # REST API endpoints
+│   │   ├── healthRouter.ts # Проверка здоровья
+│   │   ├── restRouter.ts   # Основной роутер
+│   │   └── getMetricsHandler.ts # Метрики
+│   │
 │   ├── graph/             # GraphQL схемы и резолверы
 │   ├── workers/           # Фоновые задачи
 │   ├── utils/             # Утилиты
@@ -43,9 +54,19 @@ backend/
 
 ### src/meta/
 Метаданные проекта:
-- Описания сущностей
-- Конфигурация меню
-- Бизнес-правила
+- `addCatalogs.ts` - описания основных сущностей
+- `addMenu.ts` - конфигурация навигационного меню
+- `addWscEntities.ts` - дополнительные сущности
+- `regenBasedOnMeta.ts` - скрипт регенерации кода
+- `metadata.json` - сгенерированные метаданные
+- `options.json` - настройки генерации
+
+### src/rest/
+REST API endpoints:
+- `healthRouter.ts` - проверка здоровья сервиса
+- `restRouter.ts` - основной роутер API
+- `getMetricsHandler.ts` - обработчик метрик
+- `initRestEndpoints.ts` - инициализация endpoints
 
 ### src/generated/
 Автоматически сгенерированный код:
@@ -53,10 +74,8 @@ backend/
 - Типы данных
 - Валидаторы
 
-### src/rest/ и src/graph/
-API endpoints:
-- REST контроллеры
-- GraphQL резолверы
+### src/graph/
+GraphQL схемы и резолверы:
 - Middleware
 
 ### src/workers/
