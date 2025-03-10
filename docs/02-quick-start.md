@@ -26,7 +26,7 @@ yarn init -y
 2. Добавьте Runlify и основные зависимости:
 
 ```bash
-yarn add runlify@latest typescript @types/node
+yarn add runlify@latest typescript @types/node prisma @prisma/client
 ```
 
 3. Создайте базовую структуру проекта:
@@ -37,8 +37,16 @@ my-project/
 │   └── docker-compose.yml
 ├── src/
 │   ├── meta/
-│   │   └── addCatalogs.ts
+│   │   ├── addCatalogs.ts
+│   │   ├── addMenu.ts
+│   │   └── regenBasedOnMeta.ts
+│   ├── rest/
+│   │   ├── healthRouter.ts
+│   │   └── restRouter.ts
+│   ├── generated/
 │   └── index.ts
+├── prisma/
+│   └── schema.prisma
 ├── package.json
 ├── tsconfig.json
 └── runlify.json
@@ -84,26 +92,6 @@ volumes:
 }
 ```
 
-6. Создайте первую сущность в `src/meta/addCatalogs.ts`:
-
-```typescript
-import { SystemMetaBuilder } from 'runlify';
-
-export function addCatalogs(meta: SystemMetaBuilder) {
-  const users = meta.addCatalog('users')
-    .setTitle('Пользователи')
-    .addScalarField('email', 'string')
-    .setRequired('email')
-    .setUnique('email')
-    .addScalarField('name', 'string')
-    .setTitleField('name')
-    .enableSearch()
-    .enableAudit();
-
-  return { users };
-}
-```
-
 ## Структура проекта
 
 Проект состоит из двух частей:
@@ -140,6 +128,7 @@ yarn regen  # регенерация кода на основе метаданн
 - GraphQL Playground: http://localhost:4000/playground
 - REST API: http://localhost:4000/api
 - Swagger документация: http://localhost:4000/api-docs
+- Метрики: http://localhost:4000/metrics
 
 ### Фронтенд
 
@@ -201,6 +190,10 @@ yarn prisma:newMigration # создание миграции
 
 # Генерация кода
 yarn regen          # регенерация на основе метаданных
+
+# Инициализация
+yarn init:base      # базовая инициализация
+yarn init:permissions # инициализация прав доступа
 
 # Тестирование
 yarn test           # запуск тестов

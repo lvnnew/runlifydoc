@@ -11,7 +11,10 @@
 ```typescript
 import { SystemMetaBuilder } from 'runlify';
 
-const system = new SystemMetaBuilder();
+export function addCatalogs(meta: SystemMetaBuilder) {
+  // Здесь описываются сущности
+  return { /* возвращаем созданные сущности */ };
+}
 ```
 
 ### CatalogBuilder
@@ -19,12 +22,15 @@ const system = new SystemMetaBuilder();
 Класс для описания сущностей (каталогов) в системе.
 
 ```typescript
-const users = system.addCatalog('users');
-users.setNeedFor('Таблица пользователей');
-users.setTitles({
-  en: { plural: 'Users', singular: 'User' },
-  ru: { plural: 'Пользователи', singular: 'Пользователь' }
-});
+const users = meta.addCatalog('users')
+  .setTitle('Пользователи')
+  .addScalarField('email', 'string')
+  .setRequired('email')
+  .setUnique('email')
+  .addScalarField('name', 'string')
+  .setTitleField('name')
+  .enableSearch()
+  .enableAudit();
 ```
 
 ## Работа с сущностями
@@ -33,56 +39,48 @@ users.setTitles({
 
 ```typescript
 // Создание базовой сущности
-const teams = system.addCatalog('teams');
+const teams = meta.addCatalog('teams')
+  .setTitle('Команды');
 
-// Установка описания
-teams.setNeedFor('Таблица команд');
+// Добавление полей
+teams.addScalarField('name', 'string')
+  .setTitleField('name')
+  .setRequired('name');
 
-// Установка заголовков на разных языках
-teams.setTitles({
-  en: { plural: 'Teams', singular: 'Team' },
-  ru: { plural: 'Команды', singular: 'Команда' }
-});
+// Добавление связей
+teams.addLinkField('managers', 'managerId', 'Менеджер')
+  .setRequired('managerId');
 ```
 
 ### Добавление полей
 
 ```typescript
-// Простое текстовое поле
-teams.addField('title', 'Название', { isTitleField: true })
-  .setType('string')
-  .setRequired();
+// Скалярные поля
+entity.addScalarField('title', 'string')
+  .setTitleField('title')
+  .setRequired('title');
 
-// Числовое поле
-teams.addField('age', 'Возраст')
-  .setType('int')
-  .setRequired();
+// Связи
+entity.addLinkField('parent', 'parentId', 'Родитель')
+  .setRequired('parentId');
 
-// Булево поле
-teams.addField('isActive', 'Активен')
-  .setType('bool')
-  .setDefault(true);
-
-// Поле даты
-teams.addField('createdAt', 'Дата создания')
-  .setType('date')
-  .setNotUpdatableByUser(undefined, 'new Date()');
+// Аудит
+entity.enableAudit();
 ```
 
 ### Связи между сущностями
 
 ```typescript
 // Связь один-к-одному
-users.addLinkField('profiles', 'profileId', 'Профиль')
-  .setRequired();
+entity.addLinkField('profile', 'profileId', 'Профиль')
+  .setRequired('profileId');
 
 // Связь один-ко-многим
-teams.addLinkField('managers', 'managerId', 'Менеджер')
-  .setRequired()
-  .setNotUpdatableByUser();
+entity.addLinkField('items', 'itemId', 'Элементы')
+  .setRequired('itemId');
 
 // Связь с файлами
-teams.addLinkField(files, 'logoId', 'Логотип команды');
+entity.addLinkField('files', 'fileId', 'Файлы');
 ```
 
 ### Настройка прав доступа
@@ -105,10 +103,10 @@ entity.addPermission('canApprove', 'approve');
 
 ```typescript
 // Включение поиска
-entity.setSearchEnabled(true);
+entity.enableSearch();
 
 // Установка полей для поиска
-entity.addField('name', 'Имя')
+entity.addScalarField('name', 'string')
   .setSearchable(true);
 
 // Настройка сортировки по умолчанию
@@ -129,6 +127,30 @@ Runlify автоматически генерирует следующие endpo
 // DELETE /api/entity/:id - Удаление
 ```
 
+### GraphQL API
+
+Также генерируются GraphQL типы и резолверы:
+
+```graphql
+type Entity {
+  id: ID!
+  name: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type Query {
+  entities: [Entity!]!
+  entity(id: ID!): Entity
+}
+
+type Mutation {
+  createEntity(input: CreateEntityInput!): Entity!
+  updateEntity(id: ID!, input: UpdateEntityInput!): Entity!
+  deleteEntity(id: ID!): Boolean!
+}
+```
+
 ### Кастомные методы
 
 ```typescript
@@ -139,7 +161,7 @@ entity.addMethod('approve', 'update', 'Одобрить')
 
 ## Генерация Frontend
 
-### Компоненты
+### React Admin компоненты
 
 Runlify автоматически генерирует следующие компоненты:
 
@@ -172,53 +194,34 @@ entity.setFilterView()
 ### Базовая сущность
 
 ```typescript
-const users = system.addCatalog('users');
-users.setNeedFor('Таблица пользователей');
-users.setTitles({
-  ru: { plural: 'Пользователи', singular: 'Пользователь' }
-});
-
-users.addField('email', 'Email', { isTitleField: true })
-  .setType('string')
-  .setRequired()
-  .setUnique();
-
-users.addField('name', 'Имя')
-  .setType('string')
-  .setRequired();
-
-users.addField('isActive', 'Активен')
-  .setType('bool')
-  .setDefault(true);
-
-users.setSearchEnabled(true);
-users.setAuditable(true);
+const users = meta.addCatalog('users')
+  .setTitle('Пользователи')
+  .addScalarField('email', 'string')
+  .setRequired('email')
+  .setUnique('email')
+  .addScalarField('name', 'string')
+  .setTitleField('name')
+  .addScalarField('isActive', 'boolean')
+  .setDefault('isActive', true)
+  .enableSearch()
+  .enableAudit();
 ```
 
 ### Сущность со связями
 
 ```typescript
-const teams = system.addCatalog('teams');
-teams.setNeedFor('Таблица команд');
-teams.setTitles({
-  ru: { plural: 'Команды', singular: 'Команда' }
-});
-
-teams.addField('name', 'Название', { isTitleField: true })
-  .setType('string')
-  .setRequired();
-
-teams.addLinkField('managers', 'managerId', 'Менеджер')
-  .setRequired();
-
-teams.addLinkField('clubs', 'clubId', 'Клуб')
-  .setRequired();
-
-teams.addLinkField(files, 'logoId', 'Логотип команды');
-
-teams.addField('createdAt', 'Дата создания')
-  .setType('date')
-  .setNotUpdatableByUser(undefined, 'new Date()');
+const teams = meta.addCatalog('teams')
+  .setTitle('Команды')
+  .addScalarField('name', 'string')
+  .setTitleField('name')
+  .setRequired('name')
+  .addLinkField('managers', 'managerId', 'Менеджер')
+  .setRequired('managerId')
+  .addLinkField('clubs', 'clubId', 'Клуб')
+  .setRequired('clubId')
+  .addLinkField('files', 'logoId', 'Логотип команды')
+  .enableSearch()
+  .enableAudit();
 ```
 
 ## Лучшие практики

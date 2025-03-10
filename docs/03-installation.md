@@ -11,6 +11,7 @@
 - Git
 - Docker и Docker Compose
 - PostgreSQL (версия 14 или выше)
+- Prisma CLI
 
 ### Рекомендуемые инструменты
 
@@ -19,6 +20,7 @@
   - ESLint
   - Prettier
   - GitLens
+  - Prisma
 - DBeaver или pgAdmin (для работы с базой данных)
 
 ## Пошаговая установка
@@ -45,11 +47,11 @@ sudo apt-get install -y nodejs
 brew install node
 ```
 
-### 2. Установка Runlify
+### 2. Установка Runlify и зависимостей
 
 ```bash
 # Локальная установка в проект
-yarn add runlify@latest
+yarn add runlify@latest typescript @types/node prisma @prisma/client
 ```
 
 ### 3. Настройка окружения
@@ -63,7 +65,7 @@ yarn init -y
 
 #### Установка зависимостей
 ```bash
-yarn add runlify@latest typescript @types/node
+yarn add runlify@latest typescript @types/node prisma @prisma/client
 ```
 
 ## Конфигурация
@@ -86,6 +88,30 @@ yarn add runlify@latest typescript @types/node
     "language": "typescript"
   }
 }
+```
+
+### Настройка Prisma
+
+1. Инициализируйте Prisma:
+```bash
+npx prisma init
+```
+
+2. Настройте `prisma/schema.prisma`:
+```prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+```
+
+3. Создайте `.env` файл:
+```env
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/myproject"
 ```
 
 ### Настройка Docker
@@ -115,7 +141,9 @@ volumes:
   "scripts": {
     "compose:start": "docker compose -f compose/docker-compose.yml up -d",
     "compose:stop": "docker compose -f compose/docker-compose.yml stop",
-    "compose:delete": "docker compose -f compose/docker-compose.yml down --volumes"
+    "compose:delete": "docker compose -f compose/docker-compose.yml down --volumes",
+    "prisma:gen": "prisma generate",
+    "prisma:newMigration": "runlify start env=migration prisma migrate dev --preview-feature"
   }
 }
 ```
@@ -130,7 +158,8 @@ volumes:
      "recommendations": [
        "dbaeumer.vscode-eslint",
        "esbenp.prettier-vscode",
-       "eamodio.gitlens"
+       "eamodio.gitlens",
+       "Prisma.prisma"
      ]
    }
    ```
@@ -185,14 +214,21 @@ my-project/
 ├── src/
 │   ├── meta/
 │   │   ├── addCatalogs.ts
-│   │   └── index.ts
+│   │   ├── addMenu.ts
+│   │   └── regenBasedOnMeta.ts
+│   ├── rest/
+│   │   ├── healthRouter.ts
+│   │   └── restRouter.ts
 │   ├── generated/
 │   └── config/
+├── prisma/
+│   └── schema.prisma
 ├── package.json
 ├── tsconfig.json
 ├── runlify.json
 ├── .eslintrc.js
 ├── .prettierrc
+├── .env
 └── README.md
 ```
 
@@ -250,32 +286,26 @@ yarn install
    ```bash
    docker ps
    ```
-
 2. Проверьте логи контейнера:
    ```bash
    docker logs my-project-db-1
    ```
+3. Убедитесь, что в `.env` файле указан правильный URL базы данных
 
-### Проблема: Ошибки TypeScript
+### Проблема: Ошибка Prisma
 
 **Решение:**
-1. Проверьте версию TypeScript:
+1. Проверьте схему Prisma:
    ```bash
-   yarn tsc --version
+   npx prisma validate
    ```
-
-2. Обновите конфигурацию:
-   ```json
-   {
-     "compilerOptions": {
-       "target": "es2019",
-       "module": "commonjs",
-       "strict": true,
-       "esModuleInterop": true,
-       "skipLibCheck": true,
-       "forceConsistentCasingInFileNames": true
-     }
-   }
+2. Сгенерируйте клиент:
+   ```bash
+   yarn prisma:gen
+   ```
+3. Примените миграции:
+   ```bash
+   yarn prisma:newMigration
    ```
 
 ## Следующие шаги

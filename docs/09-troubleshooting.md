@@ -1,10 +1,10 @@
-# Troubleshooting
+# Устранение неполадок
 
 В этом разделе описаны типичные проблемы, с которыми можно столкнуться при работе с Runlify, и способы их решения.
 
 ## Проблемы установки
 
-### Ошибка при установке глобального пакета
+### Ошибка при установке пакетов
 
 **Проблема:**
 ```bash
@@ -30,13 +30,13 @@ npm ERR! path /usr/local/lib/node_modules
 
 **Проблема:**
 ```bash
-Error: Cannot find module '@runlify/core'
+Error: Cannot find module '@prisma/client'
 ```
 
 **Решение:**
 1. Проверьте версии зависимостей:
    ```bash
-   npm list @runlify/core
+   npm list @prisma/client
    ```
 
 2. Очистите кэш npm:
@@ -56,15 +56,17 @@ Error: Cannot find module '@runlify/core'
 
 **Проблема:**
 ```typescript
-Error: Invalid metadata configuration: Field "title" is required for entity "user"
+Error: Invalid metadata configuration: Title field is required for entity "team"
 ```
 
 **Решение:**
 1. Проверьте наличие обязательных полей:
    ```typescript
-   const user = system.addCatalog('user');
-   user.addField('title', 'Название', { isTitleField: true })
-     .setRequired();
+   const team = system.addCatalog('team')
+     .setTitle('Команды')
+     .addScalarField('name', 'string')
+     .setTitleField('name')
+     .setRequired('name');
    ```
 
 2. Убедитесь, что все связи корректны:
@@ -73,32 +75,34 @@ Error: Invalid metadata configuration: Field "title" is required for entity "use
    const teams = system.addCatalog('teams');
    const players = system.addCatalog('players');
 
-   players.addLinkField(teams, 'teamId', 'Команда');
+   players.addLinkField('teams', 'teamId', 'Команда')
+     .setRequired('teamId');
    ```
 
 ### Ошибки при генерации API
 
 **Проблема:**
 ```bash
-Error: Could not generate API endpoints: Duplicate route "/api/users"
+Error: Could not generate API endpoints: Duplicate route "/api/teams"
 ```
 
 **Решение:**
 1. Проверьте уникальность имен сущностей:
    ```typescript
    // Используйте уникальные имена
-   const users = system.addCatalog('users');
-   const adminUsers = system.addCatalog('adminUsers');
+   const teams = system.addCatalog('teams');
+   const adminTeams = system.addCatalog('adminTeams');
    ```
 
 2. Проверьте конфигурацию маршрутов:
    ```typescript
-   entity.setApiPath('/api/v1/users');
+   // В src/rest/restRouter.ts
+   router.use('/api/teams', teamsRouter);
    ```
 
 ## Проблемы с базой данных
 
-### Ошибки миграций
+### Ошибки миграций Prisma
 
 **Проблема:**
 ```bash
@@ -108,13 +112,12 @@ Error: Migration failed: Column "status" already exists
 **Решение:**
 1. Откатите последнюю миграцию:
    ```bash
-   runlify migrate:revert
+   yarn prisma migrate reset
    ```
 
-2. Исправьте метаданные и сгенерируйте новую миграцию:
+2. Исправьте схему и сгенерируйте новую миграцию:
    ```bash
-   runlify generate
-   runlify migrate
+   yarn prisma migrate dev
    ```
 
 ### Проблемы с соединением
@@ -125,14 +128,9 @@ Error: Could not connect to database
 ```
 
 **Решение:**
-1. Проверьте конфигурацию в `runlify.json`:
-   ```json
-   {
-     "database": {
-       "type": "postgresql",
-       "url": "postgresql://user:password@localhost:5432/db"
-     }
-   }
+1. Проверьте конфигурацию в `.env`:
+   ```
+   DATABASE_URL="postgresql://user:password@localhost:5432/db"
    ```
 
 2. Убедитесь, что база данных запущена:
@@ -146,13 +144,13 @@ Error: Could not connect to database
 
 **Проблема:**
 ```bash
-Error: Cannot find module '@material-ui/core'
+Error: Cannot find module '@mui/material'
 ```
 
 **Решение:**
 1. Установите недостающие зависимости:
    ```bash
-   npm install @material-ui/core @material-ui/icons
+   yarn add @mui/material @mui/icons-material @emotion/react @emotion/styled
    ```
 
 2. Проверьте конфигурацию TypeScript:
@@ -165,27 +163,33 @@ Error: Cannot find module '@material-ui/core'
    }
    ```
 
-### Проблемы с формами
+### Проблемы с React Admin
 
 **Проблема:**
 ```typescript
-Error: Form validation failed: Invalid field type
+Error: Cannot find resource "teams"
 ```
 
 **Решение:**
-1. Проверьте определение полей:
+1. Проверьте регистрацию ресурсов:
    ```typescript
-   entity.addField('email', 'Email')
-     .setType('string')
-     .setPattern('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$')
-     .setValidationMessage('Неверный формат email');
+   // В src/App.tsx
+   import { Admin, Resource } from 'react-admin';
+   import { TeamsList } from './components/TeamsList';
+
+   export const App = () => (
+     <Admin dataProvider={dataProvider}>
+       <Resource name="teams" list={TeamsList} />
+     </Admin>
+   );
    ```
 
-2. Убедитесь, что все зависимые поля определены:
+2. Убедитесь, что API endpoints доступны:
    ```typescript
-   entity.addField('city', 'Город')
-     .setDependsOn('country')
-     .setOptionsLoader('getCitiesByCountry');
+   // Проверьте доступность API
+   fetch('/api/teams')
+     .then(response => response.json())
+     .then(data => console.log(data));
    ```
 
 ## Проблемы с правами доступа
@@ -202,13 +206,15 @@ Error: Unauthorized: Cannot access resource
    ```typescript
    entity.setCreatableByUser(true);
    entity.setUpdatableByUser(true);
+   entity.setDeletable(false);
    entity.addPermission('canApprove', 'approve');
    ```
 
-2. Убедитесь, что роли правильно настроены:
+2. Убедитесь, что токен передается в заголовках:
    ```typescript
-   entity.addField('salary', 'Зарплата')
-     .setVisibleForRoles(['HR', 'ADMIN']);
+   const headers = {
+     'Authorization': `Bearer ${token}`
+   };
    ```
 
 ### Проблемы с токенами
@@ -220,18 +226,29 @@ Error: Invalid or expired token
 
 **Решение:**
 1. Проверьте конфигурацию аутентификации:
-   ```json
-   {
-     "auth": {
-       "tokenExpiration": "24h",
-       "refreshTokenExpiration": "7d"
+   ```typescript
+   // В src/services/auth.ts
+   const authProvider = {
+     login: async (params) => {
+       const response = await fetch('/api/auth/login', {
+         method: 'POST',
+         body: JSON.stringify(params)
+       });
+       const data = await response.json();
+       localStorage.setItem('token', data.token);
      }
-   }
+   };
    ```
 
 2. Обновите токен:
    ```typescript
-   await auth.refreshToken(refreshToken);
+   const refreshToken = async () => {
+     const response = await fetch('/api/auth/refresh', {
+       method: 'POST'
+     });
+     const data = await response.json();
+     localStorage.setItem('token', data.token);
+   };
    ```
 
 ## Проблемы производительности
@@ -242,93 +259,34 @@ Error: Invalid or expired token
 Запросы к списку сущностей выполняются слишком долго.
 
 **Решение:**
-1. Добавьте индексы:
+1. Используйте пагинацию:
    ```typescript
-   entity.addField('createdAt', 'Дата создания')
-     .setIndex('BTREE');
-   
-   entity.addUniqueConstraint(['userId', 'teamId']);
+   // В REST API
+   GET /api/teams?page=1&per_page=20
+
+   // В GraphQL
+   query {
+     teams(page: 1, perPage: 20) {
+       items {
+         id
+         name
+       }
+       total
+     }
+   }
    ```
 
-2. Оптимизируйте запросы:
+2. Включите поиск для оптимизации:
    ```typescript
-   entity.setDefaultPageSize(20);
-   entity.setMaxPageSize(100);
+   entity.enableSearch();
    ```
 
-### Проблемы с памятью
-
-**Проблема:**
-```bash
-JavaScript heap out of memory
-```
-
-**Решение:**
-1. Увеличьте лимит памяти:
-   ```bash
-   NODE_OPTIONS="--max-old-space-size=4096" runlify generate
-   ```
-
-2. Оптимизируйте генерацию:
+3. Настройте сортировку по умолчанию:
    ```typescript
-   system.setGenerationOptions({
-     splitOutput: true,
-     minify: true
-   });
+   entity.setSort('name', 'ASC');
    ```
-
-## Отладка
-
-### Включение логирования
-
-```typescript
-// src/config/logger.ts
-system.setLogLevel('debug');
-system.setLogFormat('json');
-```
-
-### Отладка генерации
-
-```bash
-DEBUG=runlify:* runlify generate
-```
-
-### Проверка метаданных
-
-```typescript
-// src/meta/validate.ts
-export const validateMeta = (system: SystemMetaBuilder) => {
-  const errors = system.validate();
-  if (errors.length > 0) {
-    console.error('Metadata validation errors:', errors);
-    process.exit(1);
-  }
-};
-```
-
-## Часто задаваемые вопросы
-
-### Как обновить Runlify?
-
-```bash
-npm update -g runlify
-```
-
-### Как очистить кэш генерации?
-
-```bash
-rm -rf .runlify-cache
-runlify clean
-```
-
-### Как откатиться на предыдущую версию?
-
-```bash
-npm install -g runlify@previous
-```
 
 ## Следующие шаги
 
-- Изучите [API Reference](./06-api-reference.md) для лучшего понимания возможностей
-- Посмотрите [примеры использования](./07-examples.md) для изучения типичных сценариев
-- Ознакомьтесь с [лучшими практиками](./08-best-practices.md) для избежания проблем 
+- Ознакомьтесь с лучшими практиками в разделе [Лучшие практики](08-best-practices.md)
+- Изучите примеры использования в разделе [Примеры](07-examples.md) 

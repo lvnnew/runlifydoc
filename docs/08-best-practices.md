@@ -11,29 +11,29 @@
    // src/meta/index.ts
    import addCatalogs from './addCatalogs';
    import addMenu from './addMenu';
-   import addServices from './addServices';
+   import addWscEntities from './addWscEntities';
    
    export const configureMeta = (system: SystemMetaBuilder) => {
      addCatalogs(system);
      addMenu(system);
-     addServices(system);
+     addWscEntities(system);
    };
    ```
 
 2. **Группировка связанных сущностей**
    ```typescript
    // src/meta/catalogs/index.ts
-   export * from './users';
    export * from './teams';
+   export * from './clubs';
+   export * from './players';
    export * from './matches';
-   export * from './reports';
    ```
 
 3. **Отдельные файлы для больших сущностей**
    ```typescript
    // src/meta/catalogs/teams/index.ts
    export * from './team.entity';
-   export * from './team.methods';
+   export * from './team.permissions';
    export * from './team.views';
    ```
 
@@ -46,12 +46,12 @@
 
    ```typescript
    // Хорошо
-   const User = system.addCatalog('user');
-   const TeamMember = system.addCatalog('teamMember');
+   const team = system.addCatalog('team');
+   const player = system.addCatalog('player');
 
    // Плохо
-   const users = system.addCatalog('users');
-   const tm = system.addCatalog('tm');
+   const teams = system.addCatalog('teams');
+   const plr = system.addCatalog('plr');
    ```
 
 2. **Поля**
@@ -61,27 +61,27 @@
 
    ```typescript
    // Хорошо
-   entity.addField('firstName', 'Имя');
-   entity.addField('dateOfBirth', 'Дата рождения');
+   entity.addScalarField('firstName', 'string');
+   entity.addScalarField('dateOfBirth', 'date');
 
    // Плохо
-   entity.addField('first_name', 'Имя');
-   entity.addField('DOB', 'Дата рождения');
+   entity.addScalarField('first_name', 'string');
+   entity.addScalarField('DOB', 'date');
    ```
 
-3. **Методы**
-   - Используйте глаголы для действий
-   - Делайте имена понятными
-   - Указывайте назначение
+3. **Связи**
+   - Используйте понятные имена для связей
+   - Указывайте тип связи
+   - Добавляйте описательные заголовки
 
    ```typescript
    // Хорошо
-   entity.addMethod('approveReport', 'update', 'Одобрить отчет');
-   entity.addMethod('generateInvoice', 'create', 'Создать счет');
+   entity.addLinkField('managers', 'managerId', 'Менеджер');
+   entity.addLinkField('clubs', 'clubId', 'Клуб');
 
    // Плохо
-   entity.addMethod('approve', 'update', 'Одобрить');
-   entity.addMethod('gen', 'create', 'Создать');
+   entity.addLinkField('mgr', 'mgrId', 'Менеджер');
+   entity.addLinkField('clb', 'clbId', 'Клуб');
    ```
 
 ## Работа с типами
@@ -91,41 +91,31 @@
 1. **Правильный выбор типа**
    ```typescript
    // Хорошо
-   entity.addField('age', 'Возраст')
-     .setType('int')
-     .setMin(0)
-     .setMax(150);
+   entity.addScalarField('age', 'number')
+     .setRequired();
 
-   entity.addField('email', 'Email')
-     .setType('string')
-     .setPattern('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$');
+   entity.addScalarField('email', 'string')
+     .setRequired()
+     .setUnique();
 
    // Плохо
-   entity.addField('age', 'Возраст')
-     .setType('string');
-
-   entity.addField('email', 'Email')
-     .setType('text');
+   entity.addScalarField('age', 'string');
+   entity.addScalarField('email', 'text');
    ```
 
 2. **Валидация данных**
    ```typescript
-   entity.addField('phone', 'Телефон')
-     .setType('string')
+   entity.addScalarField('phone', 'string')
      .setRequired()
-     .setPattern('^\\+?[1-9][0-9]{7,14}$')
-     .setValidationMessage('Неверный формат телефона');
+     .setPattern('^\\+?[1-9][0-9]{7,14}$');
    ```
 
 3. **Значения по умолчанию**
    ```typescript
-   entity.addField('status', 'Статус')
-     .setType('string')
-     .setDefault('ACTIVE')
-     .setEnum(['ACTIVE', 'INACTIVE', 'SUSPENDED']);
+   entity.addScalarField('isActive', 'boolean')
+     .setDefault(true);
 
-   entity.addField('createdAt', 'Дата создания')
-     .setType('date')
+   entity.addScalarField('createdAt', 'date')
      .setDefault('NOW()');
    ```
 
@@ -137,8 +127,7 @@
    ```typescript
    // Хорошо
    team.addLinkField('players', 'playerId', 'Игрок')
-     .setRequired()
-     .setOnDelete('CASCADE');
+     .setRequired();
 
    // Плохо
    team.addLinkField('players', 'player', 'Игрок');
@@ -153,11 +142,10 @@
    player.addLinkField('teams', 'teamId', 'Команда');
    ```
 
-3. **Каскадное удаление**
+3. **Обязательные связи**
    ```typescript
-   entity.addLinkField('documents', 'documentId', 'Документ')
-     .setOnDelete('CASCADE')
-     .setOnUpdate('CASCADE');
+   entity.addLinkField('managers', 'managerId', 'Менеджер')
+     .setRequired();
    ```
 
 ## Безопасность
@@ -166,176 +154,92 @@
 
 1. **Явное указание прав**
    ```typescript
-   entity.setCreatableByUser(false);
+   entity.setCreatableByUser(true);
    entity.setUpdatableByUser(true);
    entity.setDeletable(false);
    ```
 
-2. **Ограничение полей**
+2. **Разрешения**
    ```typescript
-   entity.addField('internalNote', 'Внутренняя заметка')
-     .setVisibleForRoles(['ADMIN', 'MANAGER']);
-
-   entity.addField('salary', 'Зарплата')
-     .setEditableForRoles(['HR', 'ADMIN']);
+   entity.addPermission('canApprove', 'approve');
+   entity.addPermission('canReject', 'reject');
    ```
 
 3. **Аудит изменений**
    ```typescript
-   entity.setAuditable(true);
-   entity.addField('lastModifiedBy', 'Изменено')
-     .setType('string')
-     .setNotUpdatableByUser();
+   entity.enableAudit();
    ```
 
 ## Производительность
 
 ### Оптимизация запросов
 
-1. **Индексы**
+1. **Сортировка по умолчанию**
    ```typescript
-   entity.addField('email', 'Email')
-     .setType('string')
-     .setIndex('BTREE');
-
-   entity.addField('createdAt', 'Дата создания')
-     .setType('date')
-     .setIndex('BTREE');
+   entity.setSort('name', 'ASC');
    ```
 
-2. **Составные индексы**
+2. **Поиск**
    ```typescript
-   entity.addUniqueConstraint(['userId', 'teamId']);
-   entity.addIndex(['status', 'createdAt']);
+   entity.enableSearch();
    ```
 
 3. **Пагинация**
    ```typescript
-   entity.setDefaultPageSize(20);
-   entity.setMaxPageSize(100);
+   // В REST API
+   GET /api/entity?page=1&per_page=20
+
+   // В GraphQL
+   query {
+     entities(page: 1, perPage: 20) {
+       items {
+         id
+         name
+       }
+       total
+     }
+   }
    ```
 
 ## Пользовательский интерфейс
 
-### Формы
+### React Admin
 
-1. **Группировка полей**
+1. **Списки**
    ```typescript
-   entity.setFormView()
-     .addGroup('Основное', ['title', 'description'])
-     .addGroup('Контакты', ['email', 'phone'])
-     .addGroup('Дополнительно', ['notes']);
+   <List>
+     <Datagrid>
+       <TextField source="name" />
+       <ReferenceField source="managerId" reference="managers">
+         <TextField source="name" />
+       </ReferenceField>
+     </Datagrid>
+   </List>
    ```
 
-2. **Валидация**
+2. **Формы**
    ```typescript
-   entity.addField('password', 'Пароль')
-     .setType('string')
-     .setMinLength(8)
-     .setValidationMessage('Пароль должен содержать минимум 8 символов')
-     .setPattern('^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{8,}$')
-     .setValidationMessage('Пароль должен содержать буквы и цифры');
+   <Create>
+     <SimpleForm>
+       <TextInput source="name" />
+       <ReferenceInput source="managerId" reference="managers">
+         <TextInput source="name" />
+       </ReferenceInput>
+     </SimpleForm>
+   </Create>
    ```
 
-3. **Зависимые поля**
+3. **Фильтры**
    ```typescript
-   entity.addField('country', 'Страна')
-     .setType('string')
-     .setEnum(['RU', 'US', 'UK']);
-
-   entity.addField('city', 'Город')
-     .setType('string')
-     .setDependsOn('country')
-     .setOptionsLoader('getCitiesByCountry');
-   ```
-
-### Списки
-
-1. **Настройка колонок**
-   ```typescript
-   entity.setListView()
-     .addColumn('title', 'Название')
-     .addColumn('status', 'Статус')
-     .addColumn('createdAt', 'Создано')
-     .setDefaultSort('createdAt', 'DESC');
-   ```
-
-2. **Фильтры**
-   ```typescript
-   entity.setFilterView()
-     .addFilter('status', 'Статус')
-     .addFilter('createdAt', 'Дата создания')
-     .addFilter('category', 'Категория');
-   ```
-
-3. **Действия**
-   ```typescript
-   entity.setListView()
-     .addAction('edit', 'Редактировать')
-     .addAction('delete', 'Удалить')
-     .addCustomAction('approve', 'Одобрить');
-   ```
-
-## Тестирование
-
-1. **Тестовые данные**
-   ```typescript
-   // src/meta/seeds/test.ts
-   export const createTestData = async (ctx: Context) => {
-     await ctx.prisma.users.create({
-       data: {
-         email: 'test@example.com',
-         name: 'Test User',
-         role: 'USER'
-       }
-     });
-   };
-   ```
-
-2. **Валидация метаданных**
-   ```typescript
-   // src/meta/validate.ts
-   export const validateMeta = (system: SystemMetaBuilder) => {
-     // Проверка обязательных полей
-     system.getCatalogs().forEach(catalog => {
-       if (!catalog.getTitleField()) {
-         throw new Error(`Catalog ${catalog.getName()} must have a title field`);
-       }
-     });
-   };
-   ```
-
-## Документация
-
-1. **Описание сущностей**
-   ```typescript
-   entity.setNeedFor('Сущность для хранения информации о пользователях системы');
-   entity.setDescription('Содержит основные данные пользователя, контакты и настройки');
-   ```
-
-2. **Описание полей**
-   ```typescript
-   entity.addField('status', 'Статус')
-     .setDescription('Текущий статус пользователя в системе')
-     .setEnum(['ACTIVE', 'INACTIVE'])
-     .setEnumDescriptions({
-       ACTIVE: 'Пользователь активен',
-       INACTIVE: 'Пользователь неактивен'
-     });
-   ```
-
-3. **Примеры использования**
-   ```typescript
-   entity.addMethod('approve', 'update', 'Одобрить')
-     .setDescription('Метод для одобрения записи модератором')
-     .setExample({
-       input: { id: 1, comment: 'Одобрено' },
-       output: { success: true }
-     });
+   <Filter>
+     <TextInput source="name" />
+     <ReferenceInput source="managerId" reference="managers">
+       <TextInput source="name" />
+     </ReferenceInput>
+   </Filter>
    ```
 
 ## Следующие шаги
 
-- Изучите [примеры использования](./07-examples.md) для практического применения этих практик
-- Ознакомьтесь с разделом [Troubleshooting](./09-troubleshooting.md) для решения типичных проблем
-- Посмотрите [API Reference](./06-api-reference.md) для подробного описания всех доступных методов 
+- Ознакомьтесь с примерами использования в разделе [Примеры](07-examples.md)
+- При возникновении проблем обратитесь к разделу [Устранение неполадок](09-troubleshooting.md) 

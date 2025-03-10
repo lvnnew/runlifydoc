@@ -1,22 +1,19 @@
 # Примеры использования
 
-В этом разделе представлены практические примеры использования Runlify для различных сценариев разработки. Примеры основаны на реальном проекте спортивной системы.
+В этом разделе представлены практические примеры использования Runlify для различных сценариев разработки.
 
 ## Базовая структура проекта
 
 ```typescript
 // src/meta/addCatalogs.ts
-import { SystemMetaBuilder, getFilesCatalog } from 'runlify';
+import { SystemMetaBuilder } from 'runlify';
 
 const addCatalogs = (system: SystemMetaBuilder) => {
-  const files = getFilesCatalog(system);
-  
   // Определение сущностей
-  addTeams(system, files);
+  addTeams(system);
   addClubs(system);
-  addPlayers(system, files);
+  addPlayers(system);
   addMatches(system);
-  addReports(system);
 };
 
 export default addCatalogs;
@@ -27,38 +24,27 @@ export default addCatalogs;
 ### Команды (Teams)
 
 ```typescript
-const addTeams = (system: SystemMetaBuilder, files: CatalogBuilder) => {
-  const teams = system.addCatalog('teams');
-  teams.setNeedFor('Таблица команд');
-  teams.setTitles({
-    en: { plural: 'Teams', singular: 'Team' },
-    ru: { plural: 'Команды', singular: 'Команда' }
-  });
-
-  // Основные поля
-  teams.addField('title', 'Название', { isTitleField: true })
-    .setType('string')
-    .setRequired();
-
-  teams.addField('dateOfBirthFrom', 'Год рождения с')
-    .setType('int')
-    .setRequired();
-
-  teams.addField('dateOfBirthTo', 'По год рождения')
-    .setType('int');
-
-  // Связи
-  teams.addLinkField('managers', 'createdByManagerId', 'Создано менеджером')
-    .setRequired()
-    .setNotUpdatableByUser(undefined, 'ctx.service(\'profile\').getManagerId()');
-
-  teams.addLinkField('managers', 'lastChangedByManagerId', 'Изменено менеджером')
-    .setNotUpdatableByUser(undefined);
-
-  teams.addLinkField('clubs', 'clubId', 'Клуб')
-    .setRequired();
-
-  teams.addLinkField(files, 'fileId', 'Логотип команды');
+const addTeams = (system: SystemMetaBuilder) => {
+  const teams = system.addCatalog('teams')
+    .setTitle('Команды')
+    .addScalarField('name', 'string')
+    .setTitleField('name')
+    .setRequired('name')
+    .addScalarField('dateOfBirthFrom', 'number')
+    .setRequired('dateOfBirthFrom')
+    .addScalarField('dateOfBirthTo', 'number')
+    .addLinkField('managers', 'managerId', 'Менеджер')
+    .setRequired('managerId')
+    .addLinkField('clubs', 'clubId', 'Клуб')
+    .setRequired('clubId')
+    .addLinkField('files', 'logoId', 'Логотип команды')
+    .enableSearch()
+    .enableAudit()
+    .setCreatableByUser(true)
+    .setUpdatableByUser(true)
+    .setDeletable(false)
+    .addPermission('canApprove', 'approve')
+    .setSort('name', 'ASC');
 
   return teams;
 };
@@ -68,62 +54,48 @@ const addTeams = (system: SystemMetaBuilder, files: CatalogBuilder) => {
 
 ```typescript
 const addClubs = (system: SystemMetaBuilder) => {
-  const clubs = system.addCatalog('clubs');
-  clubs.setNeedFor('Клубы');
-  clubs.setTitles({
-    en: { plural: 'Clubs', singular: 'Club' },
-    ru: { plural: 'Клубы', singular: 'Клуб' }
-  });
-
-  clubs.addField('title', 'Название', { isTitleField: true })
-    .setType('string')
-    .setRequired();
-
-  clubs.addLinkField('managers', 'createdByManagerId', 'Создано менеджером')
-    .setRequired()
-    .setNotUpdatableByUser(undefined, 'ctx.service(\'profile\').getManagerId()');
-
-  clubs.addLinkField('managers', 'lastChangedByManagerId', 'Изменено менеджером')
-    .setNotUpdatableByUser(undefined);
+  const clubs = system.addCatalog('clubs')
+    .setTitle('Клубы')
+    .addScalarField('name', 'string')
+    .setTitleField('name')
+    .setRequired('name')
+    .addLinkField('managers', 'managerId', 'Менеджер')
+    .setRequired('managerId')
+    .enableSearch()
+    .enableAudit()
+    .setCreatableByUser(true)
+    .setUpdatableByUser(true)
+    .setDeletable(false);
 
   return clubs;
 };
 ```
 
-### Отчеты (Reports)
+### Игроки (Players)
 
 ```typescript
-const addReports = (system: SystemMetaBuilder) => {
-  const reports = system.addCatalog('reportForParents');
-  reports.setNeedFor('Таблица отчетов для родителей');
-  reports.setTitles({
-    en: { plural: 'Reports for parents', singular: 'Report for parent' },
-    ru: { plural: 'Отчеты для родителей', singular: 'Отчет для родителей' }
-  });
+const addPlayers = (system: SystemMetaBuilder) => {
+  const players = system.addCatalog('players')
+    .setTitle('Игроки')
+    .addScalarField('name', 'string')
+    .setTitleField('name')
+    .setRequired('name')
+    .addScalarField('birthDate', 'date')
+    .setRequired('birthDate')
+    .addScalarField('isActive', 'boolean')
+    .setDefault('isActive', true)
+    .addLinkField('teams', 'teamId', 'Команда')
+    .setRequired('teamId')
+    .addLinkField('clubs', 'clubId', 'Клуб')
+    .setRequired('clubId')
+    .enableSearch()
+    .enableAudit()
+    .setCreatableByUser(true)
+    .setUpdatableByUser(true)
+    .setDeletable(false)
+    .setSort('name', 'ASC');
 
-  // Основные поля
-  reports.addField('title', 'Название')
-    .setType('string')
-    .setRequired();
-
-  reports.addField('lastUpdated', 'Дата последнего изменения')
-    .setType('date')
-    .setNotUpdatableByUser(undefined, 'new Date()');
-
-  reports.addField('paid', 'Оплачен')
-    .setType('bool');
-
-  // Связи
-  reports.addLinkField('players', 'playerId', 'Игрок')
-    .setRequired();
-
-  reports.addLinkField('matches', 'matchId', 'Матч')
-    .setRequired();
-
-  reports.addLinkField('parents', 'parentId', 'Родитель')
-    .setRequired();
-
-  return reports;
+  return players;
 };
 ```
 
@@ -136,34 +108,11 @@ const addReports = (system: SystemMetaBuilder) => {
 import { SystemMetaBuilder } from 'runlify';
 
 const addMenu = (system: SystemMetaBuilder) => {
-  system.addMenuItem('main', {
-    items: [
-      {
-        title: 'Команды',
-        icon: 'Group',
-        items: [
-          { title: 'Список команд', link: '/teams' },
-          { title: 'Создать команду', link: '/teams/create' }
-        ]
-      },
-      {
-        title: 'Клубы',
-        icon: 'Business',
-        items: [
-          { title: 'Список клубов', link: '/clubs' },
-          { title: 'Создать клуб', link: '/clubs/create' }
-        ]
-      },
-      {
-        title: 'Отчеты',
-        icon: 'Assessment',
-        items: [
-          { title: 'Отчеты для родителей', link: '/reports/parents' },
-          { title: 'Отчеты для клубов', link: '/reports/clubs' }
-        ]
-      }
-    ]
-  });
+  system.addMenu('main')
+    .addItem('teams', 'Команды', 'Group')
+    .addItem('clubs', 'Клубы', 'Business')
+    .addItem('players', 'Игроки', 'Person')
+    .addItem('matches', 'Матчи', 'SportsSoccer');
 };
 
 export default addMenu;
@@ -177,8 +126,8 @@ const configurePermissions = (entity: CatalogBuilder) => {
   entity.setCreatableByUser(true);
   entity.setUpdatableByUser(true);
   entity.setDeletable(false);
-  entity.setSearchEnabled(true);
-  entity.setAuditable(true);
+  entity.enableSearch();
+  entity.enableAudit();
 
   // Кастомные права
   entity.addPermission('canApprove', 'approve');
@@ -186,155 +135,118 @@ const configurePermissions = (entity: CatalogBuilder) => {
 };
 ```
 
-## Примеры кастомных методов
+## Примеры использования API
 
-### Одобрение отчета
+### REST API
 
 ```typescript
-const reports = system.addCatalog('reports');
+// Получение списка команд
+const teams = await fetch('/api/teams?filter[name]=test&sort=name&page=1&per_page=10');
 
-reports.addMethod('approve', 'update', 'Одобрить отчет')
-  .setNeedFor('Метод для одобрения отчета')
-  .addParameter('comment', 'Комментарий')
-  .setType('string');
+// Создание команды
+const newTeam = await fetch('/api/teams', {
+  method: 'POST',
+  body: JSON.stringify({
+    name: 'Новая команда',
+    managerId: '123',
+    clubId: '456'
+  })
+});
 
-// Реализация в src/rest/reports/approve.ts
-export const approveReport = async (ctx: Context) => {
-  const { id, comment } = ctx.request.body;
-  
-  await ctx.prisma.reports.update({
-    where: { id },
-    data: {
-      status: 'APPROVED',
-      approvedAt: new Date(),
-      approvedBy: ctx.user.id,
-      comment
+// Обновление команды
+const updatedTeam = await fetch('/api/teams/123', {
+  method: 'PUT',
+  body: JSON.stringify({
+    name: 'Обновленная команда'
+  })
+});
+```
+
+### GraphQL API
+
+```typescript
+// Запрос списка команд
+const query = `
+  query GetTeams {
+    teams {
+      id
+      name
+      manager {
+        id
+        name
+      }
+      club {
+        id
+        name
+      }
     }
-  });
-  
-  return { success: true };
-};
+  }
+`;
+
+// Мутация создания команды
+const mutation = `
+  mutation CreateTeam($input: CreateTeamInput!) {
+    createTeam(input: $input) {
+      id
+      name
+      manager {
+        id
+        name
+      }
+      club {
+        id
+        name
+      }
+    }
+  }
+`;
 ```
 
-### Генерация отчета
-
-```typescript
-const reports = system.addCatalog('reports');
-
-reports.addMethod('generate', 'create', 'Сгенерировать отчет')
-  .setNeedFor('Метод для генерации отчета')
-  .addParameter('playerId', 'ID игрока')
-  .setType('string')
-  .setRequired()
-  .addParameter('period', 'Период')
-  .setType('object')
-  .setRequired();
-
-// Реализация в src/rest/reports/generate.ts
-export const generateReport = async (ctx: Context) => {
-  const { playerId, period } = ctx.request.body;
-  
-  const data = await collectPlayerData(playerId, period);
-  const report = await generateReportFromTemplate(data);
-  
-  return report;
-};
-```
-
-## Примеры интеграции с frontend
+## Примеры интеграции с React Admin
 
 ### Компонент списка команд
 
 ```typescript
 // src/components/TeamsList.tsx
-import { useTeamsList } from '../generated/hooks';
+import { List, Datagrid, TextField, ReferenceField } from 'react-admin';
 
-export const TeamsList = () => {
-  const { data, loading } = useTeamsList({
-    filter: {
-      clubId: currentClubId
-    },
-    sort: {
-      field: 'title',
-      order: 'ASC'
-    }
-  });
-
-  if (loading) return <Loader />;
-
-  return (
-    <Table>
-      <TableHead>
-        <TableRow>
-          <TableCell>Название</TableCell>
-          <TableCell>Клуб</TableCell>
-          <TableCell>Возраст с</TableCell>
-          <TableCell>Возраст по</TableCell>
-          <TableCell>Действия</TableCell>
-        </TableRow>
-      </TableHead>
-      <TableBody>
-        {data.map(team => (
-          <TableRow key={team.id}>
-            <TableCell>{team.title}</TableCell>
-            <TableCell>{team.club.title}</TableCell>
-            <TableCell>{team.dateOfBirthFrom}</TableCell>
-            <TableCell>{team.dateOfBirthTo}</TableCell>
-            <TableCell>
-              <IconButton onClick={() => handleEdit(team.id)}>
-                <EditIcon />
-              </IconButton>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
-};
+export const TeamsList = () => (
+  <List>
+    <Datagrid>
+      <TextField source="name" />
+      <ReferenceField source="managerId" reference="managers">
+        <TextField source="name" />
+      </ReferenceField>
+      <ReferenceField source="clubId" reference="clubs">
+        <TextField source="name" />
+      </ReferenceField>
+    </Datagrid>
+  </List>
+);
 ```
 
-### Форма создания отчета
+### Форма создания команды
 
 ```typescript
-// src/components/ReportForm.tsx
-import { useCreateReport } from '../generated/hooks';
+// src/components/TeamForm.tsx
+import { Create, SimpleForm, TextInput, ReferenceInput } from 'react-admin';
 
-export const ReportForm = () => {
-  const [createReport] = useCreateReport();
-
-  const handleSubmit = async (values) => {
-    try {
-      await createReport({
-        variables: {
-          input: {
-            title: values.title,
-            playerId: values.playerId,
-            matchId: values.matchId,
-            parentId: values.parentId
-          }
-        }
-      });
-      
-      showSuccess('Отчет создан');
-    } catch (error) {
-      showError('Ошибка при создании отчета');
-    }
-  };
-
-  return (
-    <Form onSubmit={handleSubmit}>
-      <TextField name="title" label="Название" required />
-      <PlayerSelect name="playerId" label="Игрок" required />
-      <MatchSelect name="matchId" label="Матч" required />
-      <ParentSelect name="parentId" label="Родитель" required />
-      <Button type="submit">Создать</Button>
-    </Form>
-  );
-};
+export const TeamCreate = () => (
+  <Create>
+    <SimpleForm>
+      <TextInput source="name" />
+      <ReferenceInput source="managerId" reference="managers">
+        <TextInput source="name" />
+      </ReferenceInput>
+      <ReferenceInput source="clubId" reference="clubs">
+        <TextInput source="name" />
+      </ReferenceInput>
+    </SimpleForm>
+  </Create>
+);
 ```
 
 ## Следующие шаги
 
-- Изучите [лучшие практики](./08-best-practices.md) для эффективной работы с Runlify
-- Ознакомьтесь с разделом [Troubleshooting](./09-troubleshooting.md) для решения типичных проблем
-- Посмотрите [API Reference](./06-api-reference.md) для подробного описания всех доступных методов 
+- Ознакомьтесь с лучшими практиками в разделе [Лучшие практики](08-best-practices.md)
+- При возникновении проблем обратитесь к разделу [Устранение неполадок](09-troubleshooting.md) 

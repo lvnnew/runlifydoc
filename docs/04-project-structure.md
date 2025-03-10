@@ -9,20 +9,71 @@ my-project/
 ├── backend/                # Backend часть приложения
 │   ├── src/
 │   │   ├── meta/         # Описания сущностей и метаданные
-│   │   ├── generated/    # Сгенерированный код
+│   │   │   ├── addCatalogs.ts
+│   │   │   ├── addMenu.ts
+│   │   │   ├── addWscEntities.ts
+│   │   │   ├── regenBasedOnMeta.ts
+│   │   │   ├── metadata.json
+│   │   │   └── options.json
 │   │   ├── rest/         # REST API endpoints
+│   │   │   ├── healthRouter.ts
+│   │   │   ├── restRouter.ts
+│   │   │   └── getMetricsHandler.ts
+│   │   ├── generated/    # Сгенерированный код
 │   │   ├── graph/        # GraphQL схемы и резолверы
+│   │   ├── workers/      # Фоновые задачи
+│   │   ├── utils/        # Утилиты
+│   │   ├── types/        # TypeScript типы
+│   │   ├── systemHooks/  # Системные хуки
+│   │   ├── metrics/      # Метрики и мониторинг
+│   │   ├── init/         # Инициализация
+│   │   ├── integrationClients/ # Клиенты для интеграций
+│   │   ├── decorators/   # TypeScript декораторы
+│   │   ├── clients/      # API клиенты
+│   │   ├── cli/          # Командная строка
+│   │   ├── businessTests/# Бизнес-тесты
+│   │   ├── app/          # Основной код приложения
+│   │   ├── bots/         # Боты и автоматизация
+│   │   ├── adm/          # Административные функции
 │   │   └── config/       # Конфигурация приложения
 │   ├── prisma/           # Схемы и миграции базы данных
+│   ├── compose/          # Docker конфигурация
+│   ├── chart/            # Helm чарты для Kubernetes
 │   ├── runlify.json      # Конфигурация Runlify
 │   └── package.json      # Зависимости backend
 │
 └── frontend/             # Frontend часть приложения
     ├── src/
-    │   ├── components/   # React компоненты
-    │   ├── pages/        # Страницы приложения
+    │   ├── adm/          # Административная панель
+    │   │   ├── widgets/  # Виджеты и компоненты
+    │   │   ├── utility/  # Утилитарные функции
+    │   │   ├── pages/    # Страницы
+    │   │   ├── functions/# Бизнес-логика
+    │   │   ├── commonActions/ # Общие действия
+    │   │   ├── resourcesChunk0.tsx # React Admin ресурсы (часть 1)
+    │   │   ├── resourcesChunk1.tsx # React Admin ресурсы (часть 2)
+    │   │   ├── routes.tsx # Маршрутизация
+    │   │   ├── resources.tsx # Описание ресурсов
+    │   │   ├── getAdditionalMenu.ts # Дополнительное меню
+    │   │   ├── getDefaultMenu.ts # Основное меню
+    │   │   ├── entityMapping.ts # Маппинг сущностей
+    │   │   ├── additionalRoutes.tsx # Дополнительные маршруты
+    │   │   ├── MetaPage.tsx # Страница метаданных
+    │   │   ├── ResourcesPage.tsx # Страница ресурсов
+    │   │   ├── Dashboard.tsx # Дашборд
+    │   │   └── DashboardStats.tsx # Статистика
+    │   ├── components/   # Общие компоненты
     │   ├── generated/    # Сгенерированный код
-    │   └── config/       # Конфигурация frontend
+    │   ├── hooks/        # React хуки
+    │   ├── layouts/      # Шаблоны страниц
+    │   ├── pages/        # Страницы приложения
+    │   ├── services/     # Сервисы
+    │   ├── store/        # Redux store
+    │   ├── styles/       # Стили
+    │   ├── types/        # TypeScript типы
+    │   └── utils/        # Утилиты
+    ├── public/           # Статические файлы
+    ├── config/           # Конфигурация
     └── package.json      # Зависимости frontend
 ```
 
@@ -34,8 +85,18 @@ my-project/
 
 - `addCatalogs.ts` - Описания основных сущностей (каталогов)
 - `addMenu.ts` - Конфигурация навигационного меню
+- `addWscEntities.ts` - Дополнительные сущности
+- `regenBasedOnMeta.ts` - Скрипт регенерации кода
 - `metadata.json` - Сгенерированные метаданные
 - `options.json` - Настройки генерации
+
+### Директория src/rest
+
+REST API endpoints и middleware:
+
+- `healthRouter.ts` - Проверка здоровья сервиса
+- `restRouter.ts` - Основной роутер API
+- `getMetricsHandler.ts` - Обработчик метрик
 
 ### Директория src/generated
 
@@ -45,14 +106,6 @@ my-project/
 - Типы TypeScript
 - Валидаторы
 - Маппинги данных
-
-### Директория src/rest
-
-Пользовательские REST API endpoints и middleware:
-
-- Кастомные обработчики
-- Дополнительная бизнес-логика
-- Интеграции с внешними сервисами
 
 ### Директория prisma
 
@@ -64,22 +117,30 @@ my-project/
 
 ## Frontend структура
 
+### Директория src/adm
+
+Административная панель на базе React Admin:
+
+- `widgets/` - Переиспользуемые компоненты и виджеты
+- `utility/` - Вспомогательные функции
+- `pages/` - Страницы админки
+- `functions/` - Бизнес-логика
+- `commonActions/` - Общие действия
+- `resourcesChunk0.tsx`, `resourcesChunk1.tsx` - React Admin ресурсы
+- `routes.tsx` - Конфигурация маршрутов
+- `resources.tsx` - Описание доступных ресурсов
+- `getAdditionalMenu.ts`, `getDefaultMenu.ts` - Конфигурация меню
+- `entityMapping.ts` - Маппинг сущностей на компоненты
+- `MetaPage.tsx`, `ResourcesPage.tsx` - Системные страницы
+- `Dashboard.tsx`, `DashboardStats.tsx` - Дашборд и статистика
+
 ### Директория src/components
 
-React компоненты приложения:
+Общие компоненты:
 
-- Общие компоненты
-- Формы
-- Таблицы
-- Модальные окна
-
-### Директория src/pages
-
-Страницы приложения:
-
-- Основные страницы
-- Маршрутизация
-- Layouts
+- Базовые UI элементы
+- Утилитарные компоненты
+- Переиспользуемые модули
 
 ### Директория src/generated
 
@@ -123,22 +184,6 @@ React компоненты приложения:
 }
 ```
 
-## Сгенерированные файлы
-
-Runlify автоматически генерирует различные типы файлов:
-
-1. **Backend**
-   - API endpoints
-   - Валидаторы
-   - Типы данных
-   - Миграции базы данных
-
-2. **Frontend**
-   - React компоненты
-   - API клиенты
-   - Типы TypeScript
-   - Формы и таблицы
-
 ## Рекомендации по организации
 
 1. **Разделение кода**
@@ -167,16 +212,19 @@ Runlify автоматически генерирует различные ти�
 
 ```bash
 # Инициализация проекта
-./initDev.sh
+yarn init:base
+
+# Инициализация прав доступа
+yarn init:permissions
 
 # Миграции базы данных
-./migrateDbs.sh
+yarn prisma:newMigration
 
-# Инициализация ролей
-./initRoles.sh
+# Генерация кода
+yarn regen
 
 # Проверка кода
-./check.sh
+yarn lint
 ```
 
 ## Следующие шаги
