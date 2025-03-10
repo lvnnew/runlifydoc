@@ -43,7 +43,7 @@
    - Работа с типами
    - Оптимизация
 
-9. [Troubleshooting](./docs/09-troubleshooting.md)
+9. [Устранение неполадок](./docs/09-troubleshooting.md)
    - Частые проблемы
    - Отладка
    - FAQ
@@ -60,17 +60,25 @@
     - Графики
     - Рекомендации
 
-12. [Структура Backend проекта](./docs/12-backend-structure.md)
-    - Общая структура
-    - Описание каталогов
-    - Ключевые файлы
-    - Рекомендации
+12. [Типы сущностей](./docs/12-entity-types.md)
+    - Документы
+    - Регистры накоплений
+    - Регистры сведений
+    - Работа с сущностями
 
-13. [Структура Frontend проекта](./docs/13-frontend-structure.md)
-    - Общая структура
-    - Компоненты
-    - Сервисы
-    - Рекомендации
+13. [Классы и методы](./docs/13-classes.md)
+    - BaseBuilder
+    - AdditionalServiceBuilder
+    - BaseSavableEntityBuilder
+    - DocumentBuilder
+    - RegisterBuilder
+    - SystemBuilder
+
+14. [Воркеры и страницы](./docs/14-workers-and-pages.md)
+    - Создание воркеров
+    - Работа со страницами
+    - Системные параметры
+    - Локальные ссылки
 
 ## Для разработчиков
 
