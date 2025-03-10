@@ -1,96 +1,94 @@
 # Быстрый старт
 
-Это руководство поможет вам быстро начать работу с Runlify и создать ваш первый проект.
+В этом разделе описано как быстро начать работу с Runlify.
 
 ## Минимальные требования
 
-Перед началом работы убедитесь, что у вас установлено:
-
 - Node.js (версия 16 или выше)
 - yarn (npm не поддерживается)
-- Git
 - Docker и Docker Compose
-- TypeScript
-- Редактор кода (рекомендуется VS Code)
+- Git
 
-## Создание нового проекта
+## Быстрый запуск проекта
 
-1. Создайте новую директорию для проекта и инициализируйте его:
-
+1. Клонируйте репозиторий:
 ```bash
-mkdir my-project
-cd my-project
-yarn init -y
+git clone <repository-url>
+cd <project-directory>
 ```
 
-2. Добавьте Runlify и основные зависимости:
-
+2. Установите зависимости:
 ```bash
-yarn add runlify@latest typescript @types/node prisma @prisma/client
+yarn install
 ```
 
-3. Создайте базовую структуру проекта:
-
-```
-my-project/
-├── compose/
-│   └── docker-compose.yml
-├── src/
-│   ├── meta/
-│   │   ├── addCatalogs.ts
-│   │   ├── addMenu.ts
-│   │   └── regenBasedOnMeta.ts
-│   ├── rest/
-│   │   ├── healthRouter.ts
-│   │   └── restRouter.ts
-│   ├── generated/
-│   └── index.ts
-├── prisma/
-│   └── schema.prisma
-├── package.json
-├── tsconfig.json
-└── runlify.json
+3. Создайте и настройте `.env` файл:
+```bash
+cp .env.example .env
 ```
 
-4. Настройте Docker Compose для базы данных. Создайте файл `compose/docker-compose.yml`:
+4. Запустите Docker контейнеры:
+```bash
+# Запуск контейнеров
+yarn compose:start
 
-```yaml
-version: '3.8'
-services:
-  db:
-    image: postgres:14
-    environment:
-      POSTGRES_DB: myproject
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-
-volumes:
-  pgdata:
+# Проверка статуса
+docker ps
 ```
 
-5. Добавьте скрипты в package.json:
+5. Выполните инициализацию проекта:
+```bash
+# Инициализация с настройками по умолчанию
+./initLocal.sh
 
-```json
-{
-  "scripts": {
-    "compose:start": "docker compose -f compose/docker-compose.yml up -d",
-    "compose:stop": "docker compose -f compose/docker-compose.yml stop",
-    "compose:delete": "docker compose -f compose/docker-compose.yml down --volumes",
-    "build": "(rm -rf dist || true) && tsc",
-    "dev": "ts-node-dev --files src/index.ts",
-    "dev:local": "runlify start env=local yarn dev",
-    "prisma:gen": "prisma generate",
-    "prisma:newMigration": "runlify start env=migration prisma migrate dev --preview-feature",
-    "init:base": "ts-node src/init/baseInit.ts",
-    "init:permissions": "yarn ts-node:withContext src/init/roles/initRolesWithPermissions.ts",
-    "regen": "yarn ts-node src/meta/regenBasedOnMeta.ts && runlify regen"
-  }
+# Или с указанием окружения
+./initLocal.sh dev
+```
+
+6. После успешной инициализации запустите проект:
+```bash
+# Режим разработки
+yarn dev
+```
+
+## Первый проект
+
+### 1. Создание сущности
+
+Создайте файл `src/meta/addCatalogs.ts`:
+
+```typescript
+import { SystemMetaBuilder } from 'runlify';
+
+export function addCatalogs(meta: SystemMetaBuilder) {
+  const users = meta.addCatalog('users')
+    .setTitle('Пользователи')
+    .addScalarField('email', 'string')
+    .setRequired('email')
+    .addScalarField('name', 'string')
+    .setTitleField('name');
+
+  return { users };
 }
 ```
+
+### 2. Генерация кода
+
+```bash
+yarn regen
+```
+
+### 3. Проверка результата
+
+Откройте в браузере:
+- Админ-панель: http://localhost:3000/admin
+- API: http://localhost:3000/api/users
+
+## Следующие шаги
+
+- Изучите подробную [установку и настройку](03-installation.md)
+- Ознакомьтесь со [структурой проекта](04-project-structure.md)
+- Посмотрите [примеры использования](07-examples.md)
 
 ## Структура проекта
 
