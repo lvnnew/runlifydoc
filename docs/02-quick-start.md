@@ -7,80 +7,218 @@
 Перед началом работы убедитесь, что у вас установлено:
 
 - Node.js (версия 16 или выше)
-- npm или yarn
+- yarn (npm не поддерживается)
 - Git
+- Docker и Docker Compose
 - TypeScript
 - Редактор кода (рекомендуется VS Code)
 
-## Установка Runlify
+## Создание нового проекта
 
-1. Установите Runlify глобально через npm:
-
-```bash
-npm install -g runlify
-```
-
-или через yarn:
+1. Создайте новую директорию для проекта и инициализируйте его:
 
 ```bash
-yarn global add runlify
+mkdir my-project
+cd my-project
+yarn init -y
 ```
 
-2. Проверьте установку:
+2. Добавьте Runlify и основные зависимости:
 
 ```bash
-runlify --version
+yarn add runlify@latest typescript @types/node
 ```
 
-## Создание первого проекта
+3. Создайте базовую структуру проекта:
 
-1. Создайте новый проект:
-
-```bash
-runlify create my-first-project
-cd my-first-project
+```
+my-project/
+├── compose/
+│   └── docker-compose.yml
+├── src/
+│   ├── meta/
+│   │   └── addCatalogs.ts
+│   └── index.ts
+├── package.json
+├── tsconfig.json
+└── runlify.json
 ```
 
-2. Установите зависимости:
+4. Настройте Docker Compose для базы данных. Создайте файл `compose/docker-compose.yml`:
 
-```bash
-yarn install
+```yaml
+version: '3.8'
+services:
+  db:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: myproject
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
 ```
 
-3. Создайте первую сущность. Создайте файл `src/entities/User.ts`:
+5. Добавьте скрипты в package.json:
+
+```json
+{
+  "scripts": {
+    "compose:start": "docker compose -f compose/docker-compose.yml up -d",
+    "compose:stop": "docker compose -f compose/docker-compose.yml stop",
+    "compose:delete": "docker compose -f compose/docker-compose.yml down --volumes",
+    "build": "(rm -rf dist || true) && tsc",
+    "dev": "ts-node-dev --files src/index.ts",
+    "dev:local": "runlify start env=local yarn dev",
+    "prisma:gen": "prisma generate",
+    "prisma:newMigration": "runlify start env=migration prisma migrate dev --preview-feature",
+    "init:base": "ts-node src/init/baseInit.ts",
+    "init:permissions": "yarn ts-node:withContext src/init/roles/initRolesWithPermissions.ts",
+    "regen": "yarn ts-node src/meta/regenBasedOnMeta.ts && runlify regen"
+  }
+}
+```
+
+6. Создайте первую сущность в `src/meta/addCatalogs.ts`:
 
 ```typescript
-import { CatalogBuilder } from 'runlify';
+import { SystemMetaBuilder } from 'runlify';
 
-export const User = new CatalogBuilder('user')
-  .setTitle({ singular: 'Пользователь', plural: 'Пользователи' })
-  .setMaterialUiIcon('Person')
-  .addField('name', 'Имя')
-  .addField('email', 'Email')
-  .addField('age', 'Возраст')
-  .setSearchEnabled(true)
-  .setAuditable(true);
+export function addCatalogs(meta: SystemMetaBuilder) {
+  const users = meta.addCatalog('users')
+    .setTitle('Пользователи')
+    .addScalarField('email', 'string')
+    .setRequired('email')
+    .setUnique('email')
+    .addScalarField('name', 'string')
+    .setTitleField('name')
+    .enableSearch()
+    .enableAudit();
+
+  return { users };
+}
 ```
 
-4. Сгенерируйте код:
+## Структура проекта
+
+Проект состоит из двух частей:
+- Бэкенд (`my-project-back`)
+- Фронтенд (`my-project-front`)
+
+### Бэкенд
+
+Основные команды для бэкенда:
 
 ```bash
-runlify generate
+# Установка зависимостей
+cd my-project-back
+yarn install
+
+# Запуск базы данных
+yarn compose:start
+
+# Разработка
+yarn dev:local  # локальное окружение (порт 4000)
+yarn dev:dev    # stage окружение
+yarn dev:prod   # production окружение
+
+# Работа с базой данных
+yarn prisma:gen           # генерация Prisma клиента
+yarn prisma:newMigration # создание новой миграции
+
+# Генерация кода
+yarn regen  # регенерация кода на основе метаданных
 ```
 
-5. Запустите приложение:
+После запуска бэкенда будут доступны:
+- GraphQL API: http://localhost:4000/graphql
+- GraphQL Playground: http://localhost:4000/playground
+- REST API: http://localhost:4000/api
+- Swagger документация: http://localhost:4000/api-docs
+
+### Фронтенд
+
+Основные команды для фронтенда:
 
 ```bash
-# Запуск backend
-yarn start:backend
+# Установка зависимостей
+cd my-project-front
+yarn install
 
-# В новом терминале запустите frontend
-yarn start:frontend
+# Разработка
+yarn dev       # режим разработки (порт 3000)
+yarn build     # сборка для production
+yarn start     # запуск production версии
 ```
 
-После запуска, ваше приложение будет доступно:
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:4000
+После запуска фронтенда будет доступно:
+- Веб-интерфейс: http://localhost:3000
+- Административная панель: http://localhost:3000/admin
+
+## Запуск всего проекта
+
+1. Запустите базу данных:
+```bash
+cd my-project-back
+yarn compose:start
+```
+
+2. В первом терминале запустите бэкенд:
+```bash
+cd my-project-back
+yarn dev:local
+```
+
+3. Во втором терминале запустите фронтенд:
+```bash
+cd my-project-front
+yarn dev
+```
+
+## Основные команды для разработки
+
+### Бэкенд (my-project-back)
+
+```bash
+# Управление Docker
+yarn compose:start    # запуск контейнеров
+yarn compose:stop     # остановка контейнеров
+yarn compose:delete   # удаление контейнеров и томов
+
+# Разработка
+yarn dev:local       # локальное окружение
+yarn dev:dev         # stage окружение
+yarn dev:prod        # production окружение
+
+# База данных
+yarn prisma:gen      # генерация Prisma клиента
+yarn prisma:newMigration # создание миграции
+
+# Генерация кода
+yarn regen          # регенерация на основе метаданных
+
+# Тестирование
+yarn test           # запуск тестов
+yarn lint           # проверка кода
+```
+
+### Фронтенд (my-project-front)
+
+```bash
+# Разработка
+yarn dev            # режим разработки
+yarn build          # сборка
+yarn start          # запуск production
+
+# Тестирование
+yarn test           # запуск тестов
+yarn lint           # проверка кода
+```
 
 ## Что дальше?
 
@@ -90,32 +228,14 @@ yarn start:frontend
 2. Узнать больше о [работе с сущностями](./05-code-generation-guide.md)
 3. Познакомиться с [API Reference](./06-api-reference.md)
 
-## Основные команды
-
-```bash
-# Создать новый проект
-runlify create <project-name>
-
-# Сгенерировать код
-runlify generate
-
-# Запустить миграции
-runlify migrate
-
-# Откатить последнюю миграцию
-runlify migrate:revert
-
-# Показать статус миграций
-runlify migrate:status
-```
-
 ## Типичные проблемы
 
 Если вы столкнулись с проблемами при установке или запуске, проверьте:
 
-1. Версии Node.js и npm/yarn
-2. Наличие всех необходимых зависимостей
-3. Правильность конфигурации в `runlify.config.ts`
-4. Логи в консоли на наличие ошибок
+1. Версии Node.js и yarn
+2. Статус Docker контейнеров (`docker ps`)
+3. Доступность базы данных (порт 5432)
+4. Логи приложения и базы данных
+5. Правильность конфигурации в `runlify.json`
 
 Более подробную информацию о решении проблем можно найти в разделе [Troubleshooting](./09-troubleshooting.md). 
