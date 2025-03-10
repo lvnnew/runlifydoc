@@ -227,6 +227,9 @@ yarn lint           # проверка кода
 1. Изучить [структуру проекта](./04-project-structure.md)
 2. Узнать больше о [работе с сущностями](./05-code-generation-guide.md)
 3. Познакомиться с [API Reference](./06-api-reference.md)
+4. Изучить [детальную структуру фреймворка Runlify](./10-runlify-structure.md)
+5. Ознакомиться с [полной структурой backend проекта](./11-backend-structure.md)
+6. Изучить [детальную структуру frontend проекта](./12-frontend-structure.md)
 
 ## Типичные проблемы
 
