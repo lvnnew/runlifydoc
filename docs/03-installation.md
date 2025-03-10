@@ -7,9 +7,10 @@
 ### Обязательные компоненты
 
 - Node.js (версия 16 или выше)
-- npm (версия 7 или выше) или yarn
+- yarn (npm не поддерживается)
 - Git
-- PostgreSQL (версия 12 или выше)
+- Docker и Docker Compose
+- PostgreSQL (версия 14 или выше)
 
 ### Рекомендуемые инструменты
 
@@ -18,7 +19,6 @@
   - ESLint
   - Prettier
   - GitLens
-- Docker и Docker Compose (для локальной разработки)
 - DBeaver или pgAdmin (для работы с базой данных)
 
 ## Пошаговая установка
@@ -31,7 +31,7 @@
 3. Проверьте установку:
    ```bash
    node --version
-   npm --version
+   yarn --version
    ```
 
 #### Linux (Ubuntu/Debian)
@@ -48,29 +48,22 @@ brew install node
 ### 2. Установка Runlify
 
 ```bash
-# Глобальная установка
-npm install -g runlify
-
-# Проверка установки
-runlify --version
+# Локальная установка в проект
+yarn add runlify@latest
 ```
 
 ### 3. Настройка окружения
 
 #### Создание рабочей директории
 ```bash
-mkdir my-runlify-project
-cd my-runlify-project
-```
-
-#### Инициализация проекта
-```bash
-runlify init
+mkdir my-project
+cd my-project
+yarn init -y
 ```
 
 #### Установка зависимостей
 ```bash
-npm install
+yarn add runlify@latest typescript @types/node
 ```
 
 ## Конфигурация
@@ -86,62 +79,46 @@ npm install
   "description": "My Runlify Project",
   "database": {
     "type": "postgresql",
-    "url": "postgresql://user:password@localhost:5432/db"
+    "url": "postgresql://postgres:postgres@localhost:5432/myproject"
   },
   "generation": {
     "output": "./src/generated",
-    "language": "typescript",
-    "frontend": {
-      "framework": "react",
-      "ui": "material-ui"
-    }
+    "language": "typescript"
   }
 }
 ```
 
-### Настройка базы данных
+### Настройка Docker
 
-#### Локальная база данных
+1. Создайте `compose/docker-compose.yml`:
+```yaml
+version: '3.8'
+services:
+  db:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: myproject
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
 
-1. Установите PostgreSQL:
-   ```bash
-   # Ubuntu/Debian
-   sudo apt-get install postgresql postgresql-contrib
+volumes:
+  pgdata:
+```
 
-   # macOS
-   brew install postgresql
-   ```
-
-2. Создайте базу данных:
-   ```bash
-   createdb my_project_db
-   ```
-
-#### Docker (рекомендуется для разработки)
-
-1. Создайте `docker-compose.yml`:
-   ```yaml
-   version: '3.8'
-   services:
-     db:
-       image: postgres:13
-       environment:
-         POSTGRES_DB: my_project_db
-         POSTGRES_USER: user
-         POSTGRES_PASSWORD: password
-       ports:
-         - "5432:5432"
-       volumes:
-         - postgres_data:/var/lib/postgresql/data
-
-   volumes:
-     postgres_data:
-   ```
-
-2. Запустите контейнер:
-   ```bash
-   docker-compose up -d
-   ```
+2. Добавьте скрипты в package.json:
+```json
+{
+  "scripts": {
+    "compose:start": "docker compose -f compose/docker-compose.yml up -d",
+    "compose:stop": "docker compose -f compose/docker-compose.yml stop",
+    "compose:delete": "docker compose -f compose/docker-compose.yml down --volumes"
+  }
+}
+```
 
 ### Настройка окружения разработки
 
@@ -153,8 +130,7 @@ npm install
      "recommendations": [
        "dbaeumer.vscode-eslint",
        "esbenp.prettier-vscode",
-       "eamodio.gitlens",
-       "ms-vscode.vscode-typescript-tslint-plugin"
+       "eamodio.gitlens"
      ]
    }
    ```
@@ -172,7 +148,7 @@ npm install
 
 1. Установите зависимости:
    ```bash
-   npm install --save-dev eslint prettier @typescript-eslint/parser @typescript-eslint/eslint-plugin
+   yarn add -D eslint prettier @typescript-eslint/parser @typescript-eslint/eslint-plugin
    ```
 
 2. Создайте `.eslintrc.js`:
@@ -183,10 +159,7 @@ npm install
      extends: [
        'eslint:recommended',
        'plugin:@typescript-eslint/recommended'
-     ],
-     rules: {
-       // Ваши правила
-     }
+     ]
    };
    ```
 
@@ -206,107 +179,92 @@ npm install
 После установки и настройки, ваш проект должен иметь следующую структуру:
 
 ```
-my-runlify-project/
+my-project/
+├── compose/
+│   └── docker-compose.yml
 ├── src/
 │   ├── meta/
 │   │   ├── addCatalogs.ts
-│   │   ├── addMenu.ts
 │   │   └── index.ts
 │   ├── generated/
-│   ├── rest/
 │   └── config/
-├── prisma/
-│   └── schema.prisma
-├── runlify.json
 ├── package.json
 ├── tsconfig.json
+├── runlify.json
 ├── .eslintrc.js
 ├── .prettierrc
-├── .gitignore
 └── README.md
 ```
 
 ## Проверка установки
 
-### 1. Создание тестовой сущности
+1. Запустите базу данных:
+```bash
+yarn compose:start
+```
 
+2. Создайте тестовую сущность:
 ```typescript
 // src/meta/addCatalogs.ts
 import { SystemMetaBuilder } from 'runlify';
 
-const addCatalogs = (system: SystemMetaBuilder) => {
-  const users = system.addCatalog('users');
-  users.setNeedFor('Таблица пользователей');
-  users.setTitles({
-    ru: { plural: 'Пользователи', singular: 'Пользователь' }
-  });
+export function addCatalogs(meta: SystemMetaBuilder) {
+  const users = meta.addCatalog('users')
+    .setTitle('Пользователи')
+    .addScalarField('email', 'string')
+    .setRequired('email')
+    .setUnique('email')
+    .addScalarField('name', 'string')
+    .setTitleField('name')
+    .enableSearch()
+    .enableAudit();
 
-  users.addField('email', 'Email')
-    .setType('string')
-    .setRequired();
-
-  users.addField('name', 'Имя')
-    .setType('string')
-    .setRequired();
-};
-
-export default addCatalogs;
+  return { users };
+}
 ```
 
-### 2. Генерация кода
-
+3. Сгенерируйте код:
 ```bash
-runlify generate
+yarn regen
 ```
 
-### 3. Запуск миграций
-
+4. Запустите приложение:
 ```bash
-runlify migrate
-```
-
-### 4. Запуск приложения
-
-```bash
-# Запуск backend
-npm run start:backend
-
-# В новом терминале запустите frontend
-npm run start:frontend
+yarn dev:local
 ```
 
 ## Типичные проблемы
 
-### Проблема: Ошибка при установке глобального пакета
+### Проблема: Ошибка при установке зависимостей
 
 **Решение:**
 ```bash
-sudo npm install -g runlify
-# или
-npm install -g runlify --unsafe-perm
+yarn cache clean
+yarn install
 ```
 
 ### Проблема: Ошибка подключения к базе данных
 
 **Решение:**
-1. Проверьте, запущен ли PostgreSQL:
+1. Проверьте статус Docker контейнеров:
    ```bash
-   sudo service postgresql status
-   # или
-   docker ps | grep postgres
+   docker ps
    ```
 
-2. Проверьте конфигурацию в `runlify.json`
+2. Проверьте логи контейнера:
+   ```bash
+   docker logs my-project-db-1
+   ```
 
 ### Проблема: Ошибки TypeScript
 
 **Решение:**
 1. Проверьте версию TypeScript:
    ```bash
-   tsc --version
+   yarn tsc --version
    ```
 
-2. Обновите `tsconfig.json`:
+2. Обновите конфигурацию:
    ```json
    {
      "compilerOptions": {
